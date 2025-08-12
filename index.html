@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            color: #4c4f69;
+            background-color: #eff1f5;
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            margin: 0 auto;
+            padding: 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Table of Contents</h2>
+    <table id="toc-table" border="1" cellpadding="8" cellspacing="0">
+        <thead>
+            <tr>
+                <th id="th-date" style="cursor:pointer">Date ^v</th>
+                <th id="th-desc" style="cursor:pointer">Description ^v</th>
+                <th id="th-cat" style="cursor:pointer">Categories ^v</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Entries will be inserted here by JS -->
+        </tbody>
+    </table>
+
+    <!-- TODO: Embed html will be inserted here by JS -->
+
+    <script>
+        DEBUG = "";
+        // Add the provided gist object to the table on page load
+        const extraGist = {
+            url: "https://api.github.com/gists/ee78eb4c66370e90be734bbe413a75d7",
+            forks_url: "https://api.github.com/gists/ee78eb4c66370e90be734bbe413a75d7/forks",
+            commits_url: "https://api.github.com/gists/ee78eb4c66370e90be734bbe413a75d7/commits",
+            id: "ee78eb4c66370e90be734bbe413a75d7",
+            node_id: "G_kwDOAqugHdoAIGVlNzhlYjRjNjYzNzBlOTBiZTczNGJiZTQxM2E3NWQ3",
+            git_pull_url: "https://gist.github.com/ee78eb4c66370e90be734bbe413a75d7.git",
+            git_push_url: "https://gist.github.com/ee78eb4c66370e90be734bbe413a75d7.git",
+            html_url: "https://gist.github.com/phoenixthrush/ee78eb4c66370e90be734bbe413a75d7",
+            files: {
+                "main.py": {
+                    filename: "main.py",
+                    type: "application/x-python",
+                    language: "Python",
+                    raw_url: "https://gist.githubusercontent.com/phoenixthrush/ee78eb4c66370e90be734bbe413a75d7/raw/c9b7e93b9c0d769a6a9e0a25fed8bd3522308c1a/main.py",
+                    size: 2384
+                }
+            },
+            public: true,
+            created_at: "2024-10-08T06:33:06Z",
+            updated_at: "2024-10-08T06:33:07Z",
+            description: "Python AI www.whatbeatsrock.com solver #Python #www.whatbeatsrock.com",
+            comments: 0,
+            user: null,
+            comments_enabled: true,
+            comments_url: "https://api.github.com/gists/ee78eb4c66370e90be734bbe413a75d7/comments",
+            owner: {
+                login: "phoenixthrush",
+                id: 44802077,
+                node_id: "MDQ6VXNlcjQ0ODAyMDc3",
+                avatar_url: "https://avatars.githubusercontent.com/u/44802077?v=4",
+                gravatar_id: "",
+                url: "https://api.github.com/users/phoenixthrush",
+                html_url: "https://github.com/phoenixthrush",
+                followers_url: "https://api.github.com/users/phoenixthrush/followers",
+                following_url: "https://api.github.com/users/phoenixthrush/following{/other_user}",
+                gists_url: "https://api.github.com/users/phoenixthrush/gists{/gist_id}",
+                starred_url: "https://api.github.com/users/phoenixthrush/starred{/owner}{/repo}",
+                subscriptions_url: "https://api.github.com/users/phoenixthrush/subscriptions",
+                organizations_url: "https://api.github.com/users/phoenixthrush/orgs",
+                repos_url: "https://api.github.com/users/phoenixthrush/repos",
+                events_url: "https://api.github.com/users/phoenixthrush/events{/privacy}",
+                received_events_url: "https://api.github.com/users/phoenixthrush/received_events",
+                type: "User",
+                user_view_type: "public",
+                site_admin: false
+            },
+            truncated: false
+        };
+
+        async function fetchAllGists(username) {
+            let allGists = [];
+            let page = 1;
+            let perPage = 100;
+            let more = true;
+            try {
+                while (more) {
+                    const res = await fetch(`https://api.github.com/users/${username}/gists?per_page=${perPage}&page=${page}`);
+                    if (!res.ok) throw new Error('Fetch failed');
+                    const gists = await res.json();
+                    allGists = allGists.concat(gists);
+                    more = gists.length === perPage;
+                    page++;
+                }
+                return allGists;
+            } catch (e) {
+                // If fetch fails, use extraGist
+                return [extraGist];
+            }
+        }
+
+        let gistsData = [];
+        let currentSort = { column: 'date', asc: true };
+
+        function renderTable(gists) {
+            const tbody = document.querySelector('#toc-table tbody');
+            tbody.innerHTML = '';
+            gists.forEach(gist => {
+                let desc = gist.description || '(No description)';
+                const url = gist.html_url;
+                // Format created_at date as YYYY-MM-DD
+                let dateStr = '';
+                if (gist.created_at) {
+                    const d = new Date(gist.created_at);
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    dateStr = `${yyyy}-${mm}-${dd}`;
+                }
+                // Extract hashtags: allow dots in hashtags, e.g., #www.whatbeatsrock.com
+                const hashtags = [];
+                const hashtagRegex = /(?:^|\s)(#\w[\w\.]*\w)/g;
+                let match;
+                while ((match = hashtagRegex.exec(desc)) !== null) {
+                    hashtags.push(match[1]); // keep the #
+                }
+                let categories = 'Uncategorised';
+                if (hashtags.length > 0) {
+                    categories = hashtags.map(tag => `<a href="#" class="cat-link" data-cat="${tag}">${tag}</a>`).join(', ');
+                }
+                // Remove all hashtags from description
+                desc = desc.replace(/(?:^|\s)(#\w[\w\.]*\w)/g, '').replace(/\s+/g, ' ').trim();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${dateStr}</td><td><a href="${url}" target="_blank">${desc}</a></td><td>${categories}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Event delegation for category filtering (outside renderTable)
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('cat-link')) {
+                e.preventDefault();
+                const selectedCat = e.target.getAttribute('data-cat');
+                const filtered = gistsData.filter(gist => {
+                    const desc = gist.description || '';
+                    const hashtagRegex = /(?:^|\s)(#\w[\w\.]*\w)/g;
+                    let match;
+                    let hashtags = [];
+                    while ((match = hashtagRegex.exec(desc)) !== null) {
+                        hashtags.push(match[1]);
+                    }
+                    return hashtags.includes(selectedCat);
+                });
+                renderTable(filtered);
+            }
+        });
+
+        function sortTable(column) {
+            let asc = currentSort.column === column ? !currentSort.asc : true;
+            currentSort = { column, asc };
+            let sorted = [...gistsData];
+            if (column === 'date') {
+                sorted.sort((a, b) => {
+                    let aDate = a.created_at || '';
+                    let bDate = b.created_at || '';
+                    return asc ? aDate.localeCompare(bDate) : bDate.localeCompare(aDate);
+                });
+            } else if (column === 'desc') {
+                sorted.sort((a, b) => {
+                    let aDesc = (a.description || '').toLowerCase();
+                    let bDesc = (b.description || '').toLowerCase();
+                    return asc ? aDesc.localeCompare(bDesc) : bDesc.localeCompare(aDesc);
+                });
+            } else if (column === 'cat') {
+                sorted.sort((a, b) => {
+                    // Extract hashtags for each
+                    const getCats = gist => {
+                        const desc = gist.description || '';
+                        const hashtags = [];
+                        const hashtagRegex = /(?:^|\s)(#\w+)/g;
+                        let match;
+                        while ((match = hashtagRegex.exec(desc)) !== null) {
+                            hashtags.push(match[1].substring(1));
+                        }
+                        return hashtags.length > 0 ? hashtags.join(', ') : 'Uncategorised';
+                    };
+                    let aCat = getCats(a).toLowerCase();
+                    let bCat = getCats(b).toLowerCase();
+                    return asc ? aCat.localeCompare(bCat) : bCat.localeCompare(aCat);
+                });
+            }
+            renderTable(sorted);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('th-date').addEventListener('click', () => sortTable('date'));
+            document.getElementById('th-desc').addEventListener('click', () => sortTable('desc'));
+            document.getElementById('th-cat').addEventListener('click', () => sortTable('cat'));
+        });
+
+        fetchAllGists('phoenixthrush')
+            .then(gists => {
+                gistsData = gists;
+                renderTable(gistsData);
+            })
+            .catch(err => {
+                const tbody = document.querySelector('#toc-table tbody');
+                tbody.innerHTML = `<tr><td colspan='3'>Error loading gists</td></tr>`;
+                console.error(err);
+            });
+    </script>
+</body>
+
+</html>
