@@ -244,7 +244,6 @@
 
     <script>
         const CONFIG = {
-            DEBUG_LOCAL_GISTS: false,
             USERNAME: 'phoenixthrush',
             PER_PAGE: 100,
             HASHTAG_REGEX: /(?:^|\s)(#[\w.-]+)/g
@@ -293,17 +292,6 @@
 
         const api = {
             async fetchAllGists(username) {
-                if (CONFIG.DEBUG_LOCAL_GISTS) {
-                    try {
-                        const response = await fetch('gists.json');
-                        if (!response.ok) throw new Error('Local gists.json fetch failed');
-                        return await response.json();
-                    } catch (error) {
-                        console.warn('Local fetch failed:', error);
-                        return [];
-                    }
-                }
-
                 const allGists = [];
                 let page = 1;
                 let hasMore = true;
