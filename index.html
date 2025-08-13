@@ -252,7 +252,7 @@
         const state = {
             gistsData: [],
             filteredData: [],
-            currentSort: { column: 'date', asc: false },
+            currentSort: { column: 'date', asc: true },
             searchTerm: ''
         };
 
@@ -456,7 +456,7 @@
                 state.filteredData = [...state.gistsData];
                 state.searchTerm = '';
                 elements.searchBox.value = '';
-                state.currentSort = { column: 'date', asc: false };
+                state.currentSort = { column: 'date', asc: true };
                 handlers.handleSort('date');
             }
         };
@@ -493,6 +493,7 @@
                 state.gistsData = gists;
                 state.filteredData = [...gists];
 
+                state.currentSort = { column: 'date', asc: true };
                 handlers.handleSort('date');
 
             } catch (error) {
